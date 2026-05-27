@@ -1,0 +1,8 @@
+venv/
+__pycache__/
+*.pyc
+.cache/
+saved_logs/
+*.pth
+.idea/
+.vscode/
