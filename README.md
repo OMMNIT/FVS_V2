@@ -1,132 +1,154 @@
-# FVS_V2 — Face Verification System API
+# FVS_V2 — Face Verification Service (UAT)
 
-A production-oriented **Face Verification API** built using **FastAPI + ArcFace (InsightFace)** for comparing **KYC identity images** with **live captured images**.
+## Overview
 
-The system extracts embeddings using ArcFace and computes similarity scores to determine whether two faces belong to the same person.
+FVS_V2 is a REST API service for **face verification between KYC identity images and live images** using **ArcFace embeddings** and **cosine similarity scoring**.
 
----
+The service is intended for:
 
-# Features
-
-✅ ArcFace face embedding generation  
-✅ Face similarity comparison using cosine similarity  
-✅ Image quality assessment  
-✅ FastAPI REST API  
-✅ Swagger UI documentation  
-✅ Modular service architecture  
-✅ Deployable microservice
+- KYC verification
+- Identity matching
+- User onboarding workflows
+- Authentication support systems
 
 ---
 
-# Tech Stack
+# Architecture
 
-| Component | Technology |
-|----------|-------------|
-| Backend | FastAPI |
-| Face Embeddings | ArcFace (InsightFace) |
-| Image Processing | OpenCV |
-| Similarity Metric | Cosine Similarity |
-| Numerical Processing | NumPy |
-| Model Runtime | ONNX Runtime |
-| API Server | Uvicorn |
-
----
-
-# System Architecture
+## High Level Flow
 
 ```txt
-                 ┌────────────────────┐
-                 │   KYC Image        │
-                 └────────┬───────────┘
-                          │
-                          ▼
-                 ┌────────────────────┐
-                 │ Read + Preprocess  │
-                 └────────┬───────────┘
-                          │
-                          ▼
-                 ┌────────────────────┐
-                 │ ArcFace Embedding  │
-                 └────────┬───────────┘
-                          │
-                          │
-                          │
-                          ▼
-                 ┌────────────────────┐
-                 │ Cosine Similarity  │
-                 └────────┬───────────┘
-                          ▲
-                          │
-                          │
-                 ┌────────┴───────────┐
-                 │ ArcFace Embedding  │
-                 └────────┬───────────┘
-                          ▲
-                          │
-                 ┌────────────────────┐
-                 │ Live Image         │
-                 └────────────────────┘
-
-
-Final Output:
-
-MATCH / NO MATCH
-Similarity Score
-Quality Score
-Confidence
+                         ┌──────────────┐
+                         │ Client/API   │
+                         └──────┬───────┘
+                                │
+                                ▼
+                     ┌────────────────────┐
+                     │ FastAPI Endpoint   │
+                     │ POST /verify-face  │
+                     └─────────┬──────────┘
+                               │
+                ┌──────────────┼──────────────┐
+                │                             │
+                ▼                             ▼
+       ┌────────────────┐             ┌────────────────┐
+       │ KYC Image      │             │ Live Image     │
+       └──────┬─────────┘             └──────┬─────────┘
+              │                              │
+              ▼                              ▼
+       ┌──────────────────────────────────────────┐
+       │ Image Processing (OpenCV)               │
+       └──────────────────────────────────────────┘
+                              │
+                              ▼
+               ┌──────────────────────────┐
+               │ ArcFace Embedding Model  │
+               └──────────────┬───────────┘
+                              │
+                              ▼
+               ┌──────────────────────────┐
+               │ Cosine Similarity Score  │
+               └──────────────┬───────────┘
+                              │
+                              ▼
+               ┌──────────────────────────┐
+               │ Threshold Evaluation     │
+               └──────────────┬───────────┘
+                              │
+                              ▼
+               ┌──────────────────────────┐
+               │ MATCH / NO MATCH         │
+               └──────────────────────────┘
 ```
 
 ---
 
-# Request Flow
+# Components
 
-```txt
-Client
-   │
-   ▼
+| Module | Purpose |
+|--------|----------|
+| main.py | FastAPI startup |
+| routes.py | API endpoints |
+| embedding_service.py | ArcFace embedding extraction |
+| similarity.py | Similarity calculation |
+| quality_service.py | Image quality scoring |
+| image_utils.py | Image preprocessing |
+
+---
+
+# Technology Stack
+
+Backend:
+
+- FastAPI
+- Uvicorn
+
+ML:
+
+- ArcFace (InsightFace)
+- ONNX Runtime
+
+Processing:
+
+- OpenCV
+- NumPy
+
+---
+
+# API Specification
+
+## Endpoint
+
+### Verify Face
+
+```http
 POST /verify-face
-   │
-   ▼
-Read Images
-   │
-   ▼
-Generate ArcFace Embeddings
-   │
-   ▼
-Calculate Similarity
-   │
-   ▼
-Evaluate Threshold
-   │
-   ▼
-Return JSON Response
 ```
+
+Request:
+
+Content-Type:
+
+```txt
+multipart/form-data
+```
+
+Parameters:
+
+| Name | Type | Required |
+|------|------|----------|
+| kyc | image | Yes |
+| live | image | Yes |
+| threshold | float | Optional |
 
 ---
 
-# Project Structure
+Response:
 
-```txt
-FVS_V2/
+Success:
 
-│
-├── main.py                  # FastAPI entrypoint
-├── routes.py                # API routes
-├── embedding_service.py     # ArcFace embedding extraction
-├── similarity.py            # Similarity calculation
-├── quality_service.py       # Image quality scoring
-├── image_utils.py           # Image preprocessing
-├── requirements.txt
-│
-└── utils/
-    └── services/
+```json
+{
+  "decision":"MATCH",
+  "similarity":0.84,
+  "quality":0.78,
+  "confidence":0.84
+}
+```
+
+Failure:
+
+```json
+{
+   "decision":"NO MATCH"
+}
 ```
 
 ---
 
 # Installation
 
-Clone repository:
+Clone:
 
 ```bash
 git clone https://github.com/OMMNIT/FVS_V2.git
@@ -134,7 +156,7 @@ git clone https://github.com/OMMNIT/FVS_V2.git
 cd FVS_V2
 ```
 
-Create virtual environment:
+Create venv:
 
 ```bash
 python -m venv venv
@@ -148,7 +170,7 @@ Windows:
 venv\Scripts\activate
 ```
 
-Install dependencies:
+Install:
 
 ```bash
 pip install -r requirements.txt
@@ -156,169 +178,165 @@ pip install -r requirements.txt
 
 ---
 
-# Running API
-
-Start server:
+# Run Locally
 
 ```bash
 python -m uvicorn main:app --reload
 ```
 
-API:
-
-```txt
-http://127.0.0.1:8000
-```
-
 Swagger:
 
 ```txt
-http://127.0.0.1:8000/docs
-```
-
-OpenAPI:
-
-```txt
-http://127.0.0.1:8000/openapi.json
+http://localhost:8000/docs
 ```
 
 ---
 
-# API Endpoint
+# UAT Deployment
 
-## Verify Face
+## Start Service
+
+Use:
+
+```bash
+uvicorn main:app \
+--host 0.0.0.0 \
+--port 8000 \
+--workers 4
+```
+
+Recommended:
+
+Reverse proxy:
+
+```txt
+Nginx
+```
+
+Application:
+
+```txt
+FastAPI + Uvicorn
+```
+
+---
+
+# Environment Requirements
+
+Python:
+
+```txt
+Python 3.11+
+```
+
+Memory:
+
+```txt
+Minimum:
+4 GB RAM
+
+Recommended:
+8+ GB
+```
+
+CPU:
+
+```txt
+4 cores+
+```
+
+---
+
+# Health Check
 
 Endpoint:
 
 ```http
-POST /verify-face
+GET /
 ```
 
-Parameters:
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| kyc | File | Identity image |
-| live | File | Live captured image |
-| threshold | Float | Matching threshold |
-
----
-
-Example Request:
-
-```bash
-curl -X POST \
-"http://127.0.0.1:8000/verify-face" \
--F "kyc=@id.jpg" \
--F "live=@live.jpg"
-```
-
----
-
-Example Response:
+Response:
 
 ```json
 {
-  "decision":"MATCH",
-  "similarity":0.82,
-  "threshold":0.5,
-  "quality":0.73,
-  "confidence":0.82
+ "message":
+ "Face Verification API Running"
 }
 ```
 
 ---
 
-# Similarity Interpretation
+# Logging
 
-| Score | Interpretation |
-|-------|----------------|
-| >0.80 | Strong Match |
-| 0.60–0.80 | Possible Match |
-| <0.60 | No Match |
+Recommended:
 
-Threshold can be tuned based on business requirements.
+Capture:
 
----
+- Request IDs
+- Similarity scores
+- Errors
+- Response times
 
-# Performance Considerations
+Do NOT log:
 
-Current implementation:
-
-- CPU inference
-- Single image verification
-- No anti-spoofing
-- No liveness detection
-
-Future improvements:
-
-- GPU inference
-- Anti-spoofing integration
-- Liveness detection
-- Batch verification
-- Docker deployment
-- CI/CD pipeline
+- Face images
+- Embeddings
+- Sensitive user data
 
 ---
 
 # Limitations
 
-Current system does NOT detect:
+Current version DOES NOT include:
 
-❌ Phone screen replay attacks  
-❌ Printed photos  
-❌ Deepfake attacks  
-❌ Mask attacks
-
-Requires dedicated anti-spoof/liveness module.
+- Anti-spoofing
+- Liveness detection
+- Replay attack detection
+- Deepfake detection
 
 ---
 
-# Future Roadmap
+# Security Notes
+
+Images must be:
+
+- Deleted after processing
+- Never persisted
+- Transmitted via HTTPS only
+
+---
+
+# Future Enhancements
 
 Planned:
 
+- Anti-spoofing
 - FaceTec integration
-- CDCN++ anti-spoofing
-- MiDaS depth estimation
-- Blink detection
-- Docker deployment
+- Depth estimation
+- Dockerization
 - Kubernetes deployment
-- Monitoring + Logging
+- Monitoring dashboards
 
 ---
 
-# Deployment
+# Rollback Plan
 
-Run:
+Rollback:
 
-```bash
-python -m uvicorn main:app --host 0.0.0.0 --port 8000
+Deploy previous stable container/version.
+
+Verify:
+
+```txt
+GET /
 ```
 
-Production:
-
-Use:
-
-- Docker
-- Nginx
-- Gunicorn/Uvicorn Workers
+before routing traffic.
 
 ---
 
 # Author
 
-**Shri Omm Das**
+Shri Omm Das
 
-B.Tech Computer Science  
-National Institute of Technology Rourkela
-
-GitHub:
-
-https://github.com/OMMNIT
-
----
-
-# License
-
-MIT License
+NIT Rourkela
