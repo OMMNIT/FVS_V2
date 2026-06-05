@@ -14,53 +14,64 @@ async def verify_face(
     threshold: float = Form(0.5)
 ):
 
-    # Read images correctly
+    # Read uploaded images
     kyc_img = read_image(kyc)
     live_img = read_image(live)
 
-
-    kyc_embedding = get_embedding(
+    # Extract embedding + base64
+    kyc_embedding, kyc_face_base64 = get_embedding(
         kyc_img
     )
 
-    live_embedding = get_embedding(
+    live_embedding, live_face_base64 = get_embedding(
         live_img
     )
 
+    # Face detection validation
+    if kyc_embedding is None:
+        return {
+            "status": "FAILED",
+            "message": "No face detected in KYC image"
+        }
 
+    if live_embedding is None:
+        return {
+            "status": "FAILED",
+            "message": "No face detected in Live image"
+        }
+
+    # Similarity calculation
     similarity = cosine_similarity(
         kyc_embedding,
         live_embedding
     )
 
-
+    # Image quality
     quality = image_quality_score(
         live_img
     )
 
-
+    # Match decision
     decision = (
         "MATCH"
         if similarity >= threshold
         else "NO MATCH"
     )
 
-
+    # Response
     return {
 
-        "decision":
-            decision,
+        "decision": decision,
 
-        "similarity":
-            similarity,
+        "similarity": round(float(similarity), 4),
 
-        "threshold":
-            threshold,
+        "threshold": threshold,
 
-        "quality":
-            quality,
+        "quality": round(float(quality), 4),
 
-        "confidence":
-            similarity
+        "confidence": round(float(similarity), 4),
 
+        "kyc_face_base64": kyc_face_base64
+
+       
     }
